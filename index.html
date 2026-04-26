@@ -1,0 +1,1314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Text ↔ Sound (FSK) — Enterprise Demo</title>
+  <style>
+    :root{
+      --bg0:#0b1220;
+      --bg1:#0f172a;
+      --card:#0b1324cc;
+      --card2:#0b1324;
+      --stroke:#22314d;
+      --stroke2:#2b3c5e;
+      --text:#e6edf7;
+      --muted:#a8b3c7;
+      --muted2:#7f8aa3;
+      --primary:#60a5fa;
+      --primary2:#3b82f6;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --shadow2: 0 6px 18px rgba(0,0,0,.25);
+      --radius: 16px;
+      --radius2: 12px;
+      --ring: 0 0 0 3px rgba(96,165,250,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(59,130,246,.35), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(34,197,94,.16), transparent 55%),
+        radial-gradient(900px 600px at 50% 110%, rgba(245,158,11,.12), transparent 50%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+    }
+
+    .topbar{
+      position:sticky; top:0; z-index:5;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.62));
+      border-bottom: 1px solid rgba(34,49,77,.7);
+    }
+    .topbar-inner{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display:flex; gap:16px; align-items:center; justify-content:space-between;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:700; letter-spacing:.2px;
+    }
+    .logo{
+      width:34px; height:34px; border-radius:10px;
+      background: radial-gradient(circle at 30% 30%, rgba(96,165,250,.9), rgba(59,130,246,.5)),
+                  radial-gradient(circle at 70% 80%, rgba(34,197,94,.5), rgba(34,197,94,.0));
+      border: 1px solid rgba(96,165,250,.35);
+      box-shadow: 0 6px 18px rgba(59,130,246,.18);
+    }
+    .subtitle{
+      color: var(--muted);
+      font-weight:500;
+      font-size: 12px;
+      letter-spacing:.15px;
+    }
+    .pill{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(34,49,77,.85);
+      background: rgba(15,23,42,.6);
+      color: var(--muted);
+      font-size: 12px;
+      display:flex; gap:8px; align-items:center;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:99px;
+      background: rgba(127,138,163,.7);
+      box-shadow: 0 0 0 3px rgba(127,138,163,.15);
+    }
+    .dot.live{
+      background: var(--good);
+      box-shadow: 0 0 0 3px rgba(34,197,94,.15), 0 0 18px rgba(34,197,94,.22);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.18);} }
+
+    .container{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border: 1px solid rgba(34,49,77,.85);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(11,19,36,.86), rgba(11,19,36,.62));
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    .card-header{
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(34,49,77,.7);
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .card-title{
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      display:flex; gap:10px; align-items:center;
+    }
+    .badge{
+      font-size: 11px;
+      color: rgba(230,237,247,.85);
+      border: 1px solid rgba(34,49,77,.95);
+      background: rgba(15,23,42,.6);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .card-body{ padding: 16px; }
+
+    textarea{
+      width:100%;
+      min-height: 150px;
+      padding: 12px 12px;
+      border-radius: var(--radius2);
+      border: 1px solid rgba(43,60,94,.95);
+      background: rgba(5,10,20,.55);
+      color: var(--text);
+      outline:none;
+      font-size: 14px;
+      line-height: 1.35;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+      transition: border .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    textarea:focus{
+      border-color: rgba(96,165,250,.75);
+      box-shadow: var(--ring);
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .btn{
+      border: 1px solid rgba(43,60,94,.95);
+      background: rgba(15,23,42,.55);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 650;
+      letter-spacing:.15px;
+      transition: transform .12s ease, border .12s ease, background .12s ease, box-shadow .12s ease;
+      box-shadow: 0 8px 18px rgba(0,0,0,.22);
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(96,165,250,.55);
+      background: rgba(15,23,42,.75);
+      box-shadow: 0 10px 24px rgba(0,0,0,.28);
+    }
+    .btn:active{ transform: translateY(0); }
+    .btn:focus{ outline:none; box-shadow: var(--ring), 0 10px 24px rgba(0,0,0,.28); }
+    .btn:disabled{
+      opacity: .55;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(59,130,246,.95), rgba(37,99,235,.92));
+      border-color: rgba(96,165,250,.65);
+      color: #07121f;
+    }
+    .btn.primary:hover{
+      background: linear-gradient(180deg, rgba(96,165,250,.98), rgba(59,130,246,.95));
+      border-color: rgba(191,219,254,.5);
+    }
+    .btn.ghost{
+      background: rgba(15,23,42,.25);
+    }
+
+    .status{
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(34,49,77,.85);
+      background: rgba(15,23,42,.45);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(230,237,247,.92);
+    }
+    .kvs{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .kv{
+      border: 1px solid rgba(34,49,77,.75);
+      border-radius: 12px;
+      padding: 10px 10px;
+      background: rgba(5,10,20,.38);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(230,237,247,.92);
+      display:flex; justify-content:space-between; gap:10px;
+    }
+    .kv span{ color: var(--muted); font-family: var(--sans); font-size: 12px; }
+    .ok{ color: var(--good); }
+    .warn{ color: var(--warn); }
+    .err{ color: var(--bad); }
+
+    .progress-wrap{
+      margin-top: 12px;
+      display:grid;
+      gap: 8px;
+    }
+    .progress{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(34,49,77,.55);
+      border: 1px solid rgba(43,60,94,.85);
+      overflow:hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(96,165,250,.95), rgba(34,197,94,.65));
+      border-radius: 999px;
+      transition: width .08s linear;
+    }
+    .progress-meta{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(230,237,247,.9);
+    }
+    .progress-meta .muted{ color: var(--muted); font-family: var(--sans); font-size: 12px; }
+
+    details{
+      margin-top: 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(34,49,77,.8);
+      background: rgba(15,23,42,.35);
+      overflow:hidden;
+    }
+    summary{
+      padding: 12px 14px;
+      cursor:pointer;
+      list-style:none;
+      font-weight: 700;
+      letter-spacing:.15px;
+      color: rgba(230,237,247,.92);
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    details[open] summary{ border-bottom: 1px solid rgba(34,49,77,.65); }
+    .settings{
+      padding: 12px 14px 14px;
+      display:grid;
+      gap: 12px;
+    }
+    .setting-row{
+      display:grid;
+      grid-template-columns: 140px 1fr 88px;
+      gap: 10px;
+      align-items:center;
+    }
+    @media (max-width: 560px){
+      .setting-row{ grid-template-columns: 1fr; }
+    }
+    .label{
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 12px;
+      letter-spacing:.15px;
+    }
+    .help{
+      color: var(--muted2);
+      font-size: 12px;
+      margin-top: -4px;
+    }
+    input[type="number"]{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(43,60,94,.95);
+      background: rgba(5,10,20,.55);
+      color: var(--text);
+      outline:none;
+      font-family: var(--mono);
+      font-size: 12px;
+      transition: border .15s ease, box-shadow .15s ease;
+    }
+    input[type="number"]:focus{
+      border-color: rgba(96,165,250,.75);
+      box-shadow: var(--ring);
+    }
+    input[type="range"]{
+      width:100%;
+      accent-color: var(--primary);
+    }
+    .range-wrap{
+      display:grid;
+      gap: 6px;
+    }
+    .range-track{
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(43,60,94,.85);
+      background: rgba(5,10,20,.45);
+      display:flex; align-items:center;
+      padding: 0 10px;
+      transition: border .15s ease, box-shadow .15s ease;
+    }
+    .range-track:focus-within{
+      border-color: rgba(96,165,250,.75);
+      box-shadow: var(--ring);
+    }
+
+    canvas{
+      width: 100%;
+      height: 190px;
+      border: 1px solid rgba(43,60,94,.9);
+      border-radius: var(--radius);
+      background: rgba(5,10,20,.42);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    @media (max-width: 560px){
+      .split{ grid-template-columns: 1fr; }
+    }
+    .panel{
+      border: 1px solid rgba(34,49,77,.75);
+      border-radius: var(--radius);
+      background: rgba(5,10,20,.34);
+      padding: 12px;
+      overflow:hidden;
+    }
+    .panel-title{
+      font-weight: 750;
+      font-size: 12px;
+      color: rgba(230,237,247,.92);
+      margin: 0 0 8px;
+      letter-spacing:.15px;
+    }
+    .mono{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(230,237,247,.92);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted2);
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div>Text ↔ Sound (FSK) <span class="badge">Chrome/Edge</span></div>
+            <div class="subtitle">Real-time audio modem demo • TX progress • RX streaming • Visualization</div>
+          </div>
+        </div>
+      </div>
+      <div class="pill">
+        <div id="liveDot" class="dot"></div>
+        <div id="topStatus">Idle</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid">
+      <!-- TX -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">Compose & Transmit</div>
+          <div class="badge" id="txModeBadge">FSK 1200/2200</div>
+        </div>
+        <div class="card-body">
+          <textarea id="inputText" placeholder="Type your text here..."></textarea>
+
+          <div class="row" style="margin-top:12px;">
+            <button id="btnSend" class="btn primary">Send as Sound</button>
+            <button id="btnSendWhileListening" class="btn">Send (auto start listening)</button>
+            <button id="btnStopTx" class="btn ghost" disabled>Stop TX</button>
+          </div>
+
+          <div class="status" id="txStatus">TX: idle</div>
+
+          <div class="progress-wrap">
+            <div class="progress">
+              <div class="bar" id="txBar"></div>
+            </div>
+            <div class="progress-meta">
+              <div><span class="muted">Progress</span> <span id="txPct">0%</span></div>
+              <div><span class="muted">Elapsed</span> <span id="txElapsed">00:00.0</span> • <span class="muted">Remaining</span> <span id="txRemain">00:00.0</span></div>
+            </div>
+          </div>
+
+          <div class="kvs">
+            <div class="kv"><span>Payload</span><b id="txPayloadBytes">0</b></div>
+            <div class="kv"><span>Total Bits</span><b id="txTotalBits">0</b></div>
+            <div class="kv"><span>Bit Duration</span><b id="txBitMs">50 ms</b></div>
+            <div class="kv"><span>Est. Duration</span><b id="txEstDur">0.0 s</b></div>
+          </div>
+
+          <details>
+            <summary>Settings <span class="badge">Interactive</span></summary>
+            <div class="settings">
+              <div class="setting-row">
+                <div>
+                  <div class="label">Bit duration (ms)</div>
+                  <div class="help">Higher = more reliable, slower</div>
+                </div>
+                <div class="range-wrap">
+                  <div class="range-track">
+                    <input id="bitMs" type="range" min="10" max="160" step="5" value="50" />
+                  </div>
+                </div>
+                <input id="bitMsNum" type="number" min="10" max="160" step="5" value="50" />
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <div class="label">f0 (Hz)</div>
+                  <div class="help">Tone for bit 0</div>
+                </div>
+                <div class="range-wrap">
+                  <div class="range-track">
+                    <input id="f0" type="range" min="300" max="3500" step="50" value="1200" />
+                  </div>
+                </div>
+                <input id="f0Num" type="number" min="300" max="3500" step="50" value="1200" />
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <div class="label">f1 (Hz)</div>
+                  <div class="help">Tone for bit 1</div>
+                </div>
+                <div class="range-wrap">
+                  <div class="range-track">
+                    <input id="f1" type="range" min="600" max="6000" step="50" value="2200" />
+                  </div>
+                </div>
+                <input id="f1Num" type="number" min="600" max="6000" step="50" value="2200" />
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <div class="label">Volume</div>
+                  <div class="help">Keep system volume ~50–70%</div>
+                </div>
+                <div class="range-wrap">
+                  <div class="range-track">
+                    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.60" />
+                  </div>
+                </div>
+                <input id="volumeNum" type="number" min="0" max="1" step="0.01" value="0.60" />
+              </div>
+
+              <div class="row">
+                <button id="presetReliable" class="btn">Preset: Reliable</button>
+                <button id="presetFaster" class="btn">Preset: Faster</button>
+                <button id="presetReset" class="btn ghost">Reset</button>
+              </div>
+
+              <div class="hint">
+                Tip: If decode fails, increase bit duration to 70–90ms. Quiet room + moderate volume works best.
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- RX -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">Listen & Decode</div>
+          <div class="badge" id="rxModeBadge">Mic → Goertzel</div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <button id="btnListen" class="btn primary">Start Listening</button>
+            <button id="btnStop" class="btn" disabled>Stop</button>
+            <button id="btnClear" class="btn ghost">Clear Output</button>
+          </div>
+
+          <div class="status" id="rxStatus">RX: idle</div>
+
+          <div class="progress-wrap">
+            <div class="progress">
+              <div class="bar" id="rxBar"></div>
+            </div>
+            <div class="progress-meta">
+              <div><span class="muted">Message</span> <span id="rxMsgProgress">0%</span></div>
+              <div><span class="muted">Elapsed</span> <span id="rxElapsed">00:00.0</span> • <span class="muted">Remaining</span> <span id="rxRemain">--:--.-</span></div>
+            </div>
+          </div>
+
+          <canvas id="viz" width="900" height="190"></canvas>
+
+          <div class="split">
+            <div class="panel">
+              <div class="panel-title">Real-time RX stream</div>
+              <div class="mono" id="rxStreamMeta">Waiting for audio…</div>
+              <div class="mono" id="rxBitsPreview" style="margin-top:8px;">(bits preview)</div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Live payload preview (unverified)</div>
+              <div class="mono" id="rxPayloadPreview">(payload preview)</div>
+            </div>
+          </div>
+
+          <h3 style="margin: 14px 0 8px; font-size: 13px; letter-spacing:.15px;">Decoded text (CRC verified)</h3>
+          <textarea id="outputText" placeholder="Decoded text appears here..." readonly></textarea>
+
+          <details>
+            <summary>Diagnostics</summary>
+            <div class="settings">
+              <div class="panel">
+                <div class="panel-title">RX diagnostics log</div>
+                <div class="mono" id="rxDiag">(no data)</div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  const $ = (id) => document.getElementById(id);
+
+  function fmtTime(ms){
+    if (!isFinite(ms) || ms < 0) ms = 0;
+    const s = ms / 1000;
+    const mm = Math.floor(s / 60);
+    const ss = (s % 60);
+    const whole = Math.floor(ss);
+    const tenths = Math.floor((ss - whole) * 10);
+    return `${String(mm).padStart(2,'0')}:${String(whole).padStart(2,'0')}.${tenths}`;
+  }
+
+  // -----------------------------
+  // CRC16-CCITT (0x1021)
+  // -----------------------------
+  function crc16ccitt(bytes) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= (bytes[i] << 8);
+      for (let b = 0; b < 8; b++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+        crc &= 0xFFFF;
+      }
+    }
+    return crc & 0xFFFF;
+  }
+  function u16be(n) { return new Uint8Array([(n >> 8) & 0xFF, n & 0xFF]); }
+
+  function bytesToBits(bytes) {
+    const bits = [];
+    for (const byte of bytes) {
+      for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
+    }
+    return bits;
+  }
+  function bitsToBytes(bits) {
+    const out = new Uint8Array(Math.floor(bits.length / 8));
+    for (let i = 0; i < out.length; i++) {
+      let v = 0;
+      for (let b = 0; b < 8; b++) v = (v << 1) | (bits[i*8 + b] & 1);
+      out[i] = v;
+    }
+    return out;
+  }
+
+  // -----------------------------
+  // Frame format: [Preamble] [Sync] [Len:2] [Payload] [CRC:2]
+  // -----------------------------
+  const PREAMBLE_LEN = 24;
+  const PREAMBLE_BYTE = 0x55;
+  const SYNC_BYTES = new Uint8Array([0x2D, 0xD4]);
+  const SYNC_BITS = bytesToBits(SYNC_BYTES);
+
+  function buildFrame(payloadBytes) {
+    const preamble = new Uint8Array(PREAMBLE_LEN).fill(PREAMBLE_BYTE);
+    const lenBytes = u16be(payloadBytes.length);
+    const crcBytes = u16be(crc16ccitt(payloadBytes));
+
+    const frame = new Uint8Array(preamble.length + SYNC_BYTES.length + 2 + payloadBytes.length + 2);
+    let o = 0;
+    frame.set(preamble, o); o += preamble.length;
+    frame.set(SYNC_BYTES, o); o += SYNC_BYTES.length;
+    frame.set(lenBytes, o); o += 2;
+    frame.set(payloadBytes, o); o += payloadBytes.length;
+    frame.set(crcBytes, o); o += 2;
+    return frame;
+  }
+
+  // -----------------------------
+  // Settings sync (range <-> number)
+  // -----------------------------
+  function bindPair(rangeId, numId, onChange){
+    const r = $(rangeId), n = $(numId);
+    const syncFromRange = () => { n.value = r.value; onChange?.(); };
+    const syncFromNum = () => { r.value = n.value; onChange?.(); };
+    r.addEventListener('input', syncFromRange);
+    n.addEventListener('input', syncFromNum);
+    syncFromRange();
+  }
+
+  function getOpts(){
+    return {
+      bitMs: parseInt($('bitMsNum').value, 10),
+      f0: parseInt($('f0Num').value, 10),
+      f1: parseInt($('f1Num').value, 10),
+      volume: parseFloat($('volumeNum').value),
+    };
+  }
+
+  function refreshBadges(){
+    const {bitMs,f0,f1} = getOpts();
+    $('txModeBadge').textContent = `FSK ${f0}/${f1} • ${bitMs}ms`;
+  }
+
+  bindPair('bitMs','bitMsNum', refreshBadges);
+  bindPair('f0','f0Num', refreshBadges);
+  bindPair('f1','f1Num', refreshBadges);
+  bindPair('volume','volumeNum', refreshBadges);
+  refreshBadges();
+
+  $('presetReliable').addEventListener('click', () => {
+    $('bitMs').value = $('bitMsNum').value = 80;
+    $('f0').value = $('f0Num').value = 1200;
+    $('f1').value = $('f1Num').value = 2200;
+    $('volume').value = $('volumeNum').value = 0.65;
+    refreshBadges();
+  });
+  $('presetFaster').addEventListener('click', () => {
+    $('bitMs').value = $('bitMsNum').value = 30;
+    $('f0').value = $('f0Num').value = 1400;
+    $('f1').value = $('f1Num').value = 2600;
+    $('volume').value = $('volumeNum').value = 0.60;
+    refreshBadges();
+  });
+  $('presetReset').addEventListener('click', () => {
+    $('bitMs').value = $('bitMsNum').value = 50;
+    $('f0').value = $('f0Num').value = 1200;
+    $('f1').value = $('f1Num').value = 2200;
+    $('volume').value = $('volumeNum').value = 0.60;
+    refreshBadges();
+  });
+
+  // -----------------------------
+  // Top status
+  // -----------------------------
+  function setTopStatus(text, live){
+    $('topStatus').textContent = text;
+    $('liveDot').classList.toggle('live', !!live);
+  }
+
+  // -----------------------------
+  // Audio TX
+  // -----------------------------
+  let audioCtx = null;
+  function ensureAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state !== "running") return audioCtx.resume().then(() => audioCtx);
+    return Promise.resolve(audioCtx);
+  }
+
+  function makeFskBuffer(bits, { sampleRate, bitMs, f0, f1, volume }) {
+    const bitSamples = Math.max(1, Math.round(sampleRate * (bitMs / 1000)));
+    const totalSamples = bitSamples * bits.length;
+    const data = new Float32Array(totalSamples);
+
+    const fadeMs = 12;
+    const fadeSamples = Math.min(Math.round(sampleRate * (fadeMs/1000)), Math.floor(totalSamples/2));
+
+    let phase = 0;
+    let idx = 0;
+    for (let bi = 0; bi < bits.length; bi++) {
+      const freq = bits[bi] ? f1 : f0;
+      const phaseInc = 2 * Math.PI * freq / sampleRate;
+      for (let s = 0; s < bitSamples; s++, idx++) {
+        data[idx] = Math.sin(phase);
+        phase += phaseInc;
+        if (phase > 1e9) phase %= (2*Math.PI);
+      }
+    }
+    // Envelope
+    for (let i = 0; i < fadeSamples; i++) {
+      const g = i / fadeSamples;
+      data[i] *= g;
+      data[totalSamples - 1 - i] *= g;
+    }
+    for (let i = 0; i < data.length; i++) data[i] *= volume;
+
+    const buffer = new AudioBuffer({ length: data.length, numberOfChannels: 1, sampleRate });
+    buffer.copyToChannel(data, 0);
+    return buffer;
+  }
+
+  // TX UI state
+  let txRaf = null;
+  let txSrc = null;
+  let txStartPerf = 0;
+  let txDurMs = 0;
+  let txTotalBits = 0;
+
+  function setTxProgress(pct, elapsedMs, remainMs){
+    const clamped = Math.max(0, Math.min(1, pct));
+    $('txBar').style.width = `${(clamped*100).toFixed(1)}%`;
+    $('txPct').textContent = `${Math.round(clamped*100)}%`;
+    $('txElapsed').textContent = fmtTime(elapsedMs);
+    $('txRemain').textContent = fmtTime(remainMs);
+  }
+
+  function stopTx(){
+    if (txSrc){
+      try { txSrc.stop(); } catch {}
+    }
+    txSrc = null;
+    if (txRaf) cancelAnimationFrame(txRaf);
+    txRaf = null;
+    $('btnStopTx').disabled = true;
+    $('btnSend').disabled = false;
+    $('btnSendWhileListening').disabled = false;
+    $('txStatus').textContent = "TX: stopped";
+    setTxProgress(0, 0, 0);
+    setTopStatus("Idle", !!micStream);
+  }
+  $('btnStopTx').addEventListener('click', stopTx);
+
+  async function send() {
+    const txStatus = $('txStatus');
+    const { bitMs, f0, f1, volume } = getOpts();
+
+    const text = $('inputText').value ?? "";
+    if (!text.trim()) {
+      txStatus.innerHTML = `TX: <span class="warn">nothing to send</span>`;
+      return;
+    }
+
+    const payload = new TextEncoder().encode(text);
+    const frame = buildFrame(payload);
+    const bits = bytesToBits(frame);
+
+    txTotalBits = bits.length;
+    const estDurMs = bits.length * bitMs;
+    $('txPayloadBytes').textContent = payload.length;
+    $('txTotalBits').textContent = txTotalBits;
+    $('txBitMs').textContent = `${bitMs} ms`;
+    $('txEstDur').textContent = `${(estDurMs/1000).toFixed(1)} s`;
+
+    txStatus.textContent = `TX: preparing... (${payload.length} bytes payload, ${bits.length} bits)`;
+
+    $('btnSend').disabled = true;
+    $('btnSendWhileListening').disabled = true;
+    $('btnStopTx').disabled = false;
+
+    const ctx = await ensureAudioContext();
+    const buffer = makeFskBuffer(bits, { sampleRate: ctx.sampleRate, bitMs, f0, f1, volume });
+
+    txSrc = ctx.createBufferSource();
+    txSrc.buffer = buffer;
+    txSrc.connect(ctx.destination);
+
+    txDurMs = buffer.duration * 1000;
+    txStartPerf = performance.now();
+
+    setTopStatus("Transmitting…", true);
+    txStatus.textContent = `TX: playing... (~${(txDurMs/1000).toFixed(1)}s)`;
+
+    // Progress loop
+    const tick = () => {
+      if (!txSrc) return;
+      const elapsed = performance.now() - txStartPerf;
+      const pct = elapsed / txDurMs;
+      setTxProgress(pct, elapsed, txDurMs - elapsed);
+      txRaf = requestAnimationFrame(tick);
+    };
+    tick();
+
+    await new Promise((resolve) => {
+      txSrc.onended = resolve;
+      txSrc.start();
+    });
+
+    // End
+    if (txRaf) cancelAnimationFrame(txRaf);
+    txRaf = null;
+
+    $('btnStopTx').disabled = true;
+    $('btnSend').disabled = false;
+    $('btnSendWhileListening').disabled = false;
+
+    setTxProgress(1, txDurMs, 0);
+    txStatus.textContent = "TX: done";
+    txSrc = null;
+
+    setTopStatus(micStream ? "Listening…" : "Idle", !!micStream);
+  }
+
+  $('btnSend').addEventListener('click', send);
+
+  // -----------------------------
+  // Audio RX
+  // -----------------------------
+  function goertzelEnergy(samples, freq, sampleRate) {
+    const w = 2 * Math.PI * (freq / sampleRate);
+    const cos = Math.cos(w);
+    const coeff = 2 * cos;
+    let s0 = 0, s1 = 0, s2 = 0;
+    for (let i = 0; i < samples.length; i++) {
+      s0 = samples[i] + coeff * s1 - s2;
+      s2 = s1;
+      s1 = s0;
+    }
+    return s1*s1 + s2*s2 - coeff*s1*s2;
+  }
+
+  const RX_STATE = { SEARCH: "SEARCH_SYNC", LEN: "READ_LEN", PAYLOAD: "READ_PAYLOAD", CRC: "READ_CRC" };
+
+  let micStream = null;
+  let rxCtx = null;
+  let processor = null;
+  let sourceNode = null;
+  let zeroGain = null;
+
+  let rxBuffer = [];
+  let rxBitWindow = [];
+  let rxState = RX_STATE.SEARCH;
+  let rxLenBits = [];
+  let rxPayloadBits = [];
+  let rxCrcBits = [];
+  let rxExpectedPayloadLen = 0;
+
+  // Streaming UI stats
+  let rxListenStartPerf = 0;
+  let rxRaf = null;
+  let rxBitCountTotal = 0;
+  let rxBitCountMsg = 0;
+  let rxExpectedMsgBits = 0;
+  let rxLastBitTimePerf = 0;
+  let rxBitRateEst = 0;
+
+  // Real-time previews (throttled)
+  let rxBitsPreviewBuf = "";
+  let rxPayloadPreviewBytes = [];
+  let rxLastPreviewUpdate = 0;
+
+  function appendDiag(msg) {
+    const el = $('rxDiag');
+    el.textContent = msg + "\n" + el.textContent;
+  }
+
+  function resetRxState(keepListenTimers=false) {
+    rxBuffer = [];
+    rxBitWindow = [];
+    rxState = RX_STATE.SEARCH;
+    rxLenBits = [];
+    rxPayloadBits = [];
+    rxCrcBits = [];
+    rxExpectedPayloadLen = 0;
+
+    rxBitCountMsg = 0;
+    rxExpectedMsgBits = 0;
+
+    rxBitsPreviewBuf = "";
+    rxPayloadPreviewBytes = [];
+    $('rxBitsPreview').textContent = "(bits preview)";
+    $('rxPayloadPreview').textContent = "(payload preview)";
+    $('rxMsgProgress').textContent = "0%";
+    $('rxBar').style.width = "0%";
+    $('rxRemain').textContent = "--:--.-";
+
+    if (!keepListenTimers){
+      rxBitCountTotal = 0;
+      rxBitRateEst = 0;
+      rxLastBitTimePerf = 0;
+    }
+  }
+
+  function syncScore(windowBits, patternBits) {
+    let match = 0;
+    for (let i = 0; i < patternBits.length; i++) if (windowBits[i] === patternBits[i]) match++;
+    return match;
+  }
+
+  function setRxProgress(pct){
+    const c = Math.max(0, Math.min(1, pct));
+    $('rxBar').style.width = `${(c*100).toFixed(1)}%`;
+    $('rxMsgProgress').textContent = `${Math.round(c*100)}%`;
+  }
+
+  function updateRxStreamMeta(extra=""){
+    const { bitMs, f0, f1 } = getOpts();
+    const state = rxState;
+    const msgBits = rxBitCountMsg;
+    const totalBits = rxBitCountTotal;
+    const len = rxExpectedPayloadLen;
+
+    let payloadBytesSoFar = 0;
+    if (rxState === RX_STATE.PAYLOAD) payloadBytesSoFar = Math.floor(rxPayloadBits.length / 8);
+    if (rxState === RX_STATE.CRC) payloadBytesSoFar = rxExpectedPayloadLen;
+
+    $('rxStreamMeta').textContent =
+      `state=${state}\n` +
+      `f0=${f0}Hz f1=${f1}Hz bitMs=${bitMs}ms\n` +
+      `bits(total)=${totalBits}  bits(msg)=${msgBits}\n` +
+      `payloadLen=${len}  payloadBytes(recv)=${payloadBytesSoFar}\n` +
+      (extra ? `note=${extra}\n` : "");
+  }
+
+  function tryConsumeBit(bit) {
+    rxBitCountTotal++;
+    rxBitCountMsg++;
+
+    // bit rate estimate (windows per second)
+    const now = performance.now();
+    if (rxLastBitTimePerf) {
+      const dt = now - rxLastBitTimePerf;
+      const inst = dt > 0 ? 1000 / dt : 0;
+      rxBitRateEst = rxBitRateEst ? (rxBitRateEst*0.9 + inst*0.1) : inst;
+    }
+    rxLastBitTimePerf = now;
+
+    // Build bit preview string (grouped)
+    rxBitsPreviewBuf += bit ? "1" : "0";
+    if (rxBitsPreviewBuf.length % 8 === 0) rxBitsPreviewBuf += " ";
+    if (rxBitsPreviewBuf.length > 320) rxBitsPreviewBuf = rxBitsPreviewBuf.slice(-320);
+
+    // Rolling sync window
+    rxBitWindow.push(bit);
+    if (rxBitWindow.length > SYNC_BITS.length) rxBitWindow.shift();
+
+    // Throttle UI preview updates
+    if (now - rxLastPreviewUpdate > 70) {
+      $('rxBitsPreview').textContent = rxBitsPreviewBuf || "(bits preview)";
+      rxLastPreviewUpdate = now;
+    }
+
+    if (rxState === RX_STATE.SEARCH) {
+      if (rxBitWindow.length === SYNC_BITS.length) {
+        const score = syncScore(rxBitWindow, SYNC_BITS);
+        if (score >= SYNC_BITS.length - 2) {
+          rxState = RX_STATE.LEN;
+          rxLenBits = [];
+          rxPayloadBits = [];
+          rxCrcBits = [];
+          rxExpectedPayloadLen = 0;
+          rxBitCountMsg = 0; // reset "message progress" after sync
+          $('rxStatus').textContent = "RX: sync found, reading length...";
+          appendDiag(`[${new Date().toLocaleTimeString()}] Sync found (score=${score}/${SYNC_BITS.length})`);
+          rxBitWindow = [];
+        }
+      }
+      updateRxStreamMeta("waiting for sync");
+      return;
+    }
+
+    if (rxState === RX_STATE.LEN) {
+      rxLenBits.push(bit);
+      if (rxLenBits.length === 16) {
+        const lenBytes = bitsToBytes(rxLenBits);
+        rxExpectedPayloadLen = (lenBytes[0] << 8) | lenBytes[1];
+
+        if (rxExpectedPayloadLen <= 0 || rxExpectedPayloadLen > 8192) {
+          appendDiag(`[${new Date().toLocaleTimeString()}] Bad length (${rxExpectedPayloadLen}), resetting`);
+          $('rxStatus').innerHTML = `RX: <span class="warn">bad length</span>, resetting...`;
+          resetRxState(true);
+          return;
+        }
+
+        // Expected bits after sync: LEN(16) + PAYLOAD(len*8) + CRC(16)
+        rxExpectedMsgBits = 16 + rxExpectedPayloadLen * 8 + 16;
+        rxState = RX_STATE.PAYLOAD;
+        $('rxStatus').textContent = `RX: length=${rxExpectedPayloadLen} bytes, receiving payload...`;
+        appendDiag(`[${new Date().toLocaleTimeString()}] Length=${rxExpectedPayloadLen}`);
+      }
+      if (rxExpectedMsgBits) setRxProgress(rxBitCountMsg / rxExpectedMsgBits);
+      updateRxStreamMeta("reading length");
+      return;
+    }
+
+    if (rxState === RX_STATE.PAYLOAD) {
+      rxPayloadBits.push(bit);
+
+      // Live payload preview (unverified)
+      if (rxPayloadBits.length % 8 === 0) {
+        const b = bitsToBytes(rxPayloadBits.slice(rxPayloadBits.length - 8, rxPayloadBits.length))[0];
+        rxPayloadPreviewBytes.push(b);
+        // show last ~256 bytes preview
+        const previewSlice = rxPayloadPreviewBytes.slice(-256);
+        try {
+          $('rxPayloadPreview').textContent = new TextDecoder().decode(new Uint8Array(previewSlice));
+        } catch {
+          $('rxPayloadPreview').textContent = "(binary payload)";
+        }
+      }
+
+      if (rxExpectedMsgBits) setRxProgress(rxBitCountMsg / rxExpectedMsgBits);
+
+      if (rxPayloadBits.length === rxExpectedPayloadLen * 8) {
+        rxState = RX_STATE.CRC;
+        $('rxStatus').textContent = "RX: payload received, reading CRC...";
+      }
+
+      updateRxStreamMeta("receiving payload");
+      return;
+    }
+
+    if (rxState === RX_STATE.CRC) {
+      rxCrcBits.push(bit);
+
+      if (rxExpectedMsgBits) setRxProgress(rxBitCountMsg / rxExpectedMsgBits);
+
+      if (rxCrcBits.length === 16) {
+        const payload = bitsToBytes(rxPayloadBits);
+        const crcBytes = bitsToBytes(rxCrcBits);
+        const gotCrc = (crcBytes[0] << 8) | crcBytes[1];
+        const calcCrc = crc16ccitt(payload);
+
+        if (gotCrc === calcCrc) {
+          const text = new TextDecoder().decode(payload);
+          const out = $('outputText');
+          out.value = (out.value ? (out.value + "\n\n") : "") + text;
+          $('rxStatus').innerHTML = `RX: <span class="ok">decoded OK</span> (${payload.length} bytes)`;
+          appendDiag(`[${new Date().toLocaleTimeString()}] CRC OK, decoded ${payload.length} bytes`);
+        } else {
+          $('rxStatus').innerHTML =
+            `RX: <span class="err">CRC mismatch</span> (got 0x${gotCrc.toString(16)}, expected 0x${calcCrc.toString(16)})`;
+          appendDiag(`[${new Date().toLocaleTimeString()}] CRC FAIL (got 0x${gotCrc.toString(16)} expected 0x${calcCrc.toString(16)})`);
+        }
+
+        // Reset for next message
+        setRxProgress(1);
+        resetRxState(true);
+        $('rxStatus').textContent += " — waiting for next sync...";
+      }
+
+      updateRxStreamMeta("reading CRC");
+    }
+  }
+
+  // -----------------------------
+  // Visualization
+  // -----------------------------
+  const viz = $('viz');
+  const vctx = viz.getContext('2d');
+  const MAX_POINTS = 240;
+  const seriesE0 = [], seriesE1 = [], seriesBit = [], seriesRatio = [];
+
+  function pushViz(e0, e1, bit){
+    const le0 = Math.log10(e0 + 1e-9);
+    const le1 = Math.log10(e1 + 1e-9);
+    const ratio = (Math.max(e0,e1)+1e-9) / (Math.min(e0,e1)+1e-9);
+    seriesE0.push(le0); seriesE1.push(le1); seriesBit.push(bit); seriesRatio.push(ratio);
+    while(seriesE0.length > MAX_POINTS){ seriesE0.shift(); seriesE1.shift(); seriesBit.shift(); seriesRatio.shift(); }
+  }
+
+  function drawViz(){
+    const w = viz.width, h = viz.height;
+    vctx.clearRect(0,0,w,h);
+
+    // grid
+    vctx.fillStyle = "rgba(5,10,20,.0)";
+    vctx.fillRect(0,0,w,h);
+    vctx.strokeStyle = "rgba(34,49,77,.35)";
+    vctx.lineWidth = 1;
+    for(let x=0;x<=w;x+=60){ vctx.beginPath(); vctx.moveTo(x,0); vctx.lineTo(x,h); vctx.stroke(); }
+    for(let y=0;y<=h;y+=45){ vctx.beginPath(); vctx.moveTo(0,y); vctx.lineTo(w,y); vctx.stroke(); }
+
+    const n = seriesE0.length;
+    if(n >= 2){
+      let minV = Infinity, maxV = -Infinity;
+      for(let i=0;i<n;i++){ minV=Math.min(minV,seriesE0[i],seriesE1[i]); maxV=Math.max(maxV,seriesE0[i],seriesE1[i]); }
+      if(!isFinite(minV)||!isFinite(maxV)||minV===maxV){ minV-=1; maxV+=1; }
+
+      const padTop=10, padBottom=28, plotH=h-padTop-padBottom;
+      const yScale = (v)=> padTop + (1 - (v-minV)/(maxV-minV)) * plotH;
+
+      // e0
+      vctx.strokeStyle = "rgba(96,165,250,.95)";
+      vctx.lineWidth = 2;
+      vctx.beginPath();
+      for(let i=0;i<n;i++){
+        const x = (i/(n-1))*(w-1);
+        const y = yScale(seriesE0[i]);
+        if(i===0) vctx.moveTo(x,y); else vctx.lineTo(x,y);
+      }
+      vctx.stroke();
+
+      // e1
+      vctx.strokeStyle = "rgba(239,68,68,.92)";
+      vctx.lineWidth = 2;
+      vctx.beginPath();
+      for(let i=0;i<n;i++){
+        const x = (i/(n-1))*(w-1);
+        const y = yScale(seriesE1[i]);
+        if(i===0) vctx.moveTo(x,y); else vctx.lineTo(x,y);
+      }
+      vctx.stroke();
+
+      // bit strip
+      const stripY = h - padBottom + 6, stripH=16;
+      for(let i=0;i<n;i++){
+        const x0 = (i/n)*w, x1 = ((i+1)/n)*w;
+        vctx.fillStyle = seriesBit[i] ? "rgba(34,197,94,.92)" : "rgba(148,163,184,.65)";
+        vctx.fillRect(x0, stripY, Math.max(1,x1-x0), stripH);
+      }
+
+      // label
+      vctx.fillStyle = "rgba(230,237,247,.92)";
+      vctx.font = "12px " + getComputedStyle(document.documentElement).getPropertyValue('--mono');
+      const ratio = seriesRatio[n-1] ?? 0;
+      vctx.fillText(`logE [${minV.toFixed(1)}..${maxV.toFixed(1)}]  ratio=${ratio.toFixed(2)}`, 10, h - 7);
+    }
+    requestAnimationFrame(drawViz);
+  }
+  requestAnimationFrame(drawViz);
+
+  // -----------------------------
+  // RX start/stop + progress/timers
+  // -----------------------------
+  function startRxTimers(){
+    rxListenStartPerf = performance.now();
+    const tick = () => {
+      if (!micStream) return;
+
+      const elapsed = performance.now() - rxListenStartPerf;
+      $('rxElapsed').textContent = fmtTime(elapsed);
+
+      // Remaining: only meaningful when a message is in progress (after len known)
+      const { bitMs } = getOpts();
+      if (rxExpectedMsgBits && rxBitCountMsg <= rxExpectedMsgBits) {
+        const remainingBits = rxExpectedMsgBits - rxBitCountMsg;
+        const remainingMs = remainingBits * bitMs;
+        $('rxRemain').textContent = fmtTime(remainingMs);
+      } else {
+        $('rxRemain').textContent = "--:--.-";
+      }
+
+      rxRaf = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  function stopRxTimers(){
+    if (rxRaf) cancelAnimationFrame(rxRaf);
+    rxRaf = null;
+    $('rxElapsed').textContent = "00:00.0";
+    $('rxRemain').textContent = "--:--.-";
+  }
+
+  function startListening() {
+    const rxStatus = $('rxStatus');
+    if (micStream) return Promise.resolve();
+
+    resetRxState(false);
+    rxStatus.textContent = "RX: requesting microphone permission...";
+    updateRxStreamMeta("requesting mic");
+    setTopStatus("Requesting mic…", true);
+
+    const { bitMs, f0, f1 } = getOpts();
+
+    const constraints = {
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    };
+
+    return navigator.mediaDevices.getUserMedia(constraints).then(async (stream) => {
+      micStream = stream;
+
+      rxCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await rxCtx.resume();
+
+      sourceNode = rxCtx.createMediaStreamSource(stream);
+
+      const bufferSize = 4096;
+      processor = rxCtx.createScriptProcessor(bufferSize, 1, 1);
+
+      // critical: keep processor running without feedback
+      zeroGain = rxCtx.createGain();
+      zeroGain.gain.value = 0.0;
+
+      sourceNode.connect(processor);
+      processor.connect(zeroGain);
+      zeroGain.connect(rxCtx.destination);
+
+      const bitSamples = Math.max(1, Math.round(rxCtx.sampleRate * (bitMs / 1000)));
+
+      rxStatus.textContent = "RX: listening... (waiting for sync)";
+      $('btnListen').disabled = true;
+      $('btnStop').disabled = false;
+
+      appendDiag(`[${new Date().toLocaleTimeString()}] Listening started @ sampleRate=${rxCtx.sampleRate}, bitSamples=${bitSamples}`);
+      setTopStatus("Listening…", true);
+      startRxTimers();
+
+      processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+        for (let i = 0; i < input.length; i++) rxBuffer.push(input[i]);
+
+        while (rxBuffer.length >= bitSamples) {
+          const chunk = rxBuffer.slice(0, bitSamples);
+          rxBuffer = rxBuffer.slice(bitSamples);
+
+          const e0 = goertzelEnergy(chunk, f0, rxCtx.sampleRate);
+          const e1 = goertzelEnergy(chunk, f1, rxCtx.sampleRate);
+          const bit = (e1 > e0) ? 1 : 0;
+
+          pushViz(e0, e1, bit);
+          tryConsumeBit(bit);
+        }
+      };
+
+    }).catch((err) => {
+      rxStatus.innerHTML = `RX: <span class="err">mic error</span> — ${err.message}`;
+      appendDiag(`[${new Date().toLocaleTimeString()}] Mic error: ${err.message}`);
+      stopListening();
+    });
+  }
+
+  function stopListening() {
+    if (processor) {
+      processor.disconnect();
+      processor.onaudioprocess = null;
+      processor = null;
+    }
+    if (zeroGain) { zeroGain.disconnect(); zeroGain = null; }
+    if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
+    if (rxCtx) { rxCtx.close(); rxCtx = null; }
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+
+    resetRxState(false);
+    $('rxStatus').textContent = "RX: idle";
+    $('btnListen').disabled = false;
+    $('btnStop').disabled = true;
+    stopRxTimers();
+    appendDiag(`[${new Date().toLocaleTimeString()}] Listening stopped`);
+    setTopStatus(txSrc ? "Transmitting…" : "Idle", !!txSrc);
+  }
+
+  $('btnListen').addEventListener('click', startListening);
+  $('btnStop').addEventListener('click', stopListening);
+
+  $('btnClear').addEventListener('click', () => {
+    $('outputText').value = "";
+    $('rxDiag').textContent = "(no data)";
+    $('rxBitsPreview').textContent = "(bits preview)";
+    $('rxPayloadPreview').textContent = "(payload preview)";
+  });
+
+  $('btnSendWhileListening').addEventListener('click', async () => {
+    if (!micStream) await startListening();
+    await new Promise(r => setTimeout(r, 250));
+    await send();
+  });
+
+  // Initialize text
+  $('inputText').value =
+`Hello! This is an enterprise-style demo.
+
+1) Start Listening
+2) Send as Sound
+3) Watch progress + streaming RX panels + CRC-verified output.`;
+
+  setTopStatus("Idle", false);
+})();
+</script>
+</body>
+</html>
